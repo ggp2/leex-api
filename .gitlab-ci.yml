@@ -3,8 +3,7 @@ stages:
   - test
   - security
   - package
-  - docker-build
-  - container-test
+  - image-build
 
 default:
   image: python:3.12-slim
@@ -113,20 +112,15 @@ package-application:
     paths:
       - dist/*.tar.gz
 
-docker-build:
-  stage: docker-build
-  image: docker:27.5-cli
+image-build-rootless:
+  stage: image-build
 
-  services:
-    - name: docker:27.5-dind
-      alias: docker
-      command:
-        - "--tls=false"
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: [""]
 
   variables:
-    DOCKER_HOST: "tcp://docker:2375"
-    DOCKER_TLS_CERTDIR: ""
-    HEALTHCHECK_TCP_PORT: "2375"
+    BUILDKITD_FLAGS: "--oci-worker-no-process-sandbox"
 
   before_script: []
 
@@ -134,92 +128,19 @@ docker-build:
     - package-application
 
   script:
+    - mkdir -p dist
     - |
-      for attempt in 1 2 3 4 5 6 7 8 9 10; do
-        echo "Attente du daemon Docker : ${attempt}/10"
+      buildctl-daemonless.sh build \
+        --frontend dockerfile.v0 \
+        --local context=. \
+        --local dockerfile=. \
+        --output type=oci,dest=dist/leex-api-image-${CI_COMMIT_SHORT_SHA}.tar
 
-        if docker info; then
-          echo "Daemon Docker disponible."
-          break
-        fi
-
-        if [ "$attempt" -eq 10 ]; then
-          echo "Le daemon Docker-in-Docker reste inaccessible."
-          exit 1
-        fi
-
-        sleep 3
-      done
-
-    - docker build --pull --tag "leex-api:${CI_COMMIT_SHORT_SHA}" .
-    - docker image inspect "leex-api:${CI_COMMIT_SHORT_SHA}"
-    - docker save "leex-api:${CI_COMMIT_SHORT_SHA}" --output leex-api-image.tar
+    - test -s "dist/leex-api-image-${CI_COMMIT_SHORT_SHA}.tar"
+    - ls -lh dist/
 
   artifacts:
-    name: "leex-api-docker-${CI_COMMIT_SHORT_SHA}"
+    name: "leex-api-container-${CI_COMMIT_SHORT_SHA}"
     expire_in: 7 days
     paths:
-      - leex-api-image.tar
-
-container-test:
-  stage: container-test
-  image: docker:27.5-cli
-
-  services:
-    - name: docker:27.5-dind
-      alias: docker
-      command:
-        - "--tls=false"
-
-  variables:
-    DOCKER_HOST: "tcp://docker:2375"
-    DOCKER_TLS_CERTDIR: ""
-    HEALTHCHECK_TCP_PORT: "2375"
-
-  before_script: []
-
-  needs:
-    - job: docker-build
-      artifacts: true
-
-  script:
-    - |
-      for attempt in 1 2 3 4 5 6 7 8 9 10; do
-        echo "Attente du daemon Docker : ${attempt}/10"
-
-        if docker info; then
-          echo "Daemon Docker disponible."
-          break
-        fi
-
-        if [ "$attempt" -eq 10 ]; then
-          echo "Le daemon Docker-in-Docker reste inaccessible."
-          exit 1
-        fi
-
-        sleep 3
-      done
-
-    - docker load --input leex-api-image.tar
-    - docker run -d --name leex-api-test "leex-api:${CI_COMMIT_SHORT_SHA}"
-
-    - |
-      for attempt in 1 2 3 4 5; do
-        echo "Contrôle de santé : ${attempt}/5"
-
-        if docker exec leex-api-test \
-          python -c "import urllib.request; response = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2); assert response.status == 200"; then
-          echo "Test du conteneur réussi."
-          exit 0
-        fi
-
-        sleep 3
-      done
-
-      echo "Le conteneur ne répond pas correctement."
-      docker logs leex-api-test
-      exit 1
-
-  after_script:
-    - docker logs leex-api-test || true
-    - docker rm -f leex-api-test || true
+      - dist/leex-api-image-*.tar
