@@ -1,0 +1,15 @@
+.git
+.gitlab-ci.yml
+.github
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.xml
+reports
+dist
+.env
+docs
+tests
