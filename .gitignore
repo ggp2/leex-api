@@ -7,3 +7,5 @@ coverage.xml
 reports/
 .venv/
 .env
+dist/
+reports/
