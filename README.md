@@ -1,93 +1,304 @@
-# Groupe de gomago_p 1077546
+cat > README.md <<'EOF'
+# LEEX API — CI/CD DevSecOps avec GitLab CI et GitHub Actions
 
+Projet DevOps visant à concevoir, sécuriser et comparer deux chaînes CI/CD pour une API Python conteneurisée.
 
+## Objectifs
 
-## Getting started
+Le projet couvre :
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- qualité de code ;
+- tests unitaires ;
+- audit de sécurité ;
+- détection de secrets ;
+- génération d'artefacts ;
+- build et test Docker ;
+- déploiement sur VM ;
+- rollback ;
+- comparaison GitLab CI / GitHub Actions.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## Stack technique
 
-* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+- Python
+- Flask
+- Gunicorn
+- Docker
+- Git
+- GitLab CI
+- GitHub Actions
+- Pytest
+- Ruff
+- Bandit
+- pip-audit
+- Gitleaks
+- Bash
 
+---
+
+## Architecture
+
+```text
+.
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── app/
+│   ├── __init__.py
+│   └── main.py
+├── scripts/
+│   ├── deploy-local.sh
+│   └── rollback-local.sh
+├── tests/
+│   └── test_api.py
+├── .gitlab-ci.yml
+├── Dockerfile
+├── requirements.txt
+├── requirements-dev.txt
+├── pytest.ini
+├── COMPARAISON-CI.md
+└── README.md
 ```
-cd existing_repo
-git remote add origin https://rendu-git.etna-alternance.net/module-10377/activity-55575/group-1077546.git
-git branch -M main
-git push -uf origin main
+
+---
+
+## Application
+
+LEEX API est une API Flask exposant principalement deux routes.
+
+### `/health`
+
+Permet de vérifier que l'application fonctionne.
+
+```bash
+curl http://127.0.0.1:8002/health
 ```
 
-## Integrate with your tools
+Réponse attendue :
 
-* [Set up project integrations](https://rendu-git.etna-alternance.net/module-10377/activity-55575/group-1077546/-/settings/integrations)
+```json
+{"status":"ok"}
+```
 
-## Collaborate with your team
+### `/items`
 
-* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Permet de récupérer les données de l'API.
 
-## Test and Deploy
+```bash
+curl http://127.0.0.1:8002/items
+```
 
-Use the built-in continuous integration in GitLab.
+---
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+## Pipeline GitLab CI
 
-***
+GitLab CI automatise :
 
-# Editing this README
+- lint avec Ruff ;
+- tests avec Pytest ;
+- analyse de sécurité avec Bandit ;
+- audit des dépendances avec pip-audit ;
+- détection de secrets avec Gitleaks ;
+- génération de rapports ;
+- création d'un artefact applicatif.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Limitation Docker
 
-## Suggestions for a good README
+Le build Docker a été bloqué par les restrictions du runner GitLab ETNA.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Deux approches ont été testées :
 
-## Name
-Choose a self-explaining name for your project.
+- Docker-in-Docker ;
+- BuildKit rootless.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Erreurs rencontrées :
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```text
+Cannot connect to the Docker daemon
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+et :
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```text
+operation not permitted
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+Cette limitation provient de la configuration et des permissions du runner, et non du code de l'application ou du Dockerfile.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+---
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## Pipeline GitHub Actions
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Le workflow GitHub Actions contient quatre jobs principaux :
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+1. Qualité, tests et sécurité
+2. Recherche de secrets
+3. Création de l'artefact
+4. Build et test Docker
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Le pipeline valide :
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+- Ruff ;
+- Pytest ;
+- Bandit ;
+- pip-audit ;
+- Gitleaks ;
+- création d'artefacts ;
+- checksum SHA-256 ;
+- build Docker ;
+- démarrage du conteneur ;
+- test de `/health` ;
+- test de `/items` ;
+- healthcheck Docker ;
+- utilisateur non-root ;
+- nettoyage du conteneur.
 
-## License
-For open source projects, say how it is licensed.
+Le pipeline GitHub Actions a été validé avec succès.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+---
+
+## Sécurité
+
+Les contrôles de sécurité comprennent :
+
+- Bandit pour le code Python ;
+- pip-audit pour les dépendances ;
+- Gitleaks pour les secrets ;
+- utilisateur Docker non-root ;
+- permissions minimales dans GitHub Actions ;
+- checksum SHA-256 pour l'intégrité des artefacts ;
+- exposition du service sur `127.0.0.1`.
+
+---
+
+## Docker
+
+Construire l'image :
+
+```bash
+docker build -t leex-api:1.0.0 .
+```
+
+Lancer le conteneur :
+
+```bash
+docker run -d \
+  --name leex-api \
+  --publish 127.0.0.1:8002:8000 \
+  leex-api:1.0.0
+```
+
+Vérifier son état :
+
+```bash
+docker inspect \
+  --format='{{.State.Status}} / {{.State.Health.Status}}' \
+  leex-api
+```
+
+Résultat attendu :
+
+```text
+running / healthy
+```
+
+---
+
+## Déploiement
+
+Le script `scripts/deploy-local.sh` construit une nouvelle image, remplace l'ancien conteneur et vérifie automatiquement la disponibilité de l'API.
+
+```bash
+./scripts/deploy-local.sh 1.0.1
+```
+
+Le script réalise :
+
+- construction de l'image ;
+- suppression de l'ancien conteneur ;
+- démarrage de la nouvelle version ;
+- contrôle de `/health` ;
+- affichage des logs en cas d'échec.
+
+---
+
+## Rollback
+
+Le script `scripts/rollback-local.sh` permet de revenir à une version Docker précédente.
+
+```bash
+./scripts/rollback-local.sh 1.0.0
+```
+
+Le rollback :
+
+- vérifie que l'ancienne image existe ;
+- remplace le conteneur actuel ;
+- démarre l'ancienne version ;
+- teste `/health` ;
+- confirme le retour à une version fonctionnelle.
+
+---
+
+## Comparaison GitLab CI / GitHub Actions
+
+| Fonctionnalité | GitLab CI | GitHub Actions |
+|---|---|---|
+| Ruff | Réussi | Réussi |
+| Pytest | Réussi | Réussi |
+| Bandit | Réussi | Réussi |
+| pip-audit | Réussi | Réussi |
+| Gitleaks | Réussi | Réussi |
+| Artefacts | Réussi | Réussi |
+| Build Docker | Bloqué par le runner | Réussi |
+| Test du conteneur | Non exécuté | Réussi |
+| Healthcheck | Non exécuté | Réussi |
+| Utilisateur non-root | Non exécuté | Réussi |
+| Déploiement VM | Réussi | Réussi |
+| Rollback | Réussi | Réussi |
+
+---
+
+## Compétences démontrées
+
+Ce projet démontre des compétences pratiques en :
+
+- CI/CD ;
+- DevSecOps ;
+- Docker ;
+- Git ;
+- Linux ;
+- Bash ;
+- qualité logicielle ;
+- sécurité applicative ;
+- gestion d'artefacts ;
+- déploiement ;
+- rollback ;
+- diagnostic de runners CI.
+
+---
+
+## Résultat
+
+GitLab CI a permis de valider :
+
+- qualité ;
+- tests ;
+- sécurité ;
+- artefacts.
+
+GitHub Actions a permis de valider la chaîne complète jusqu'au build et au test du conteneur Docker.
+
+Le projet démontre également un déploiement reproductible sur VM et un rollback fonctionnel.
+
+---
+
+## Conclusion
+
+GitLab CI et GitHub Actions permettent tous les deux de construire des chaînes CI/CD robustes.
+
+Dans l'environnement utilisé, GitHub Actions a permis d'exécuter la chaîne Docker complète, alors que GitLab CI a été limité par les permissions du runner ETNA.
+
+Ce projet illustre une approche DevOps orientée automatisation, sécurité, exploitation et mise en production.
+EOF
